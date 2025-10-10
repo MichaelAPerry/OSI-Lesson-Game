@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Networking – OSI Model Lesson Game</title>
+<style>
+  :root{
+    --bg: linear-gradient(135deg,#eef3ff,#f7fbff);
+    --card-bg:#fff;
+    --accent:#3b82f6;
+    --accent-2:#10b981;
+    --warn:#ef4444;
+    --text:#0f172a;
+    --muted:#6b7280;
+    --shadow: 0 8px 30px rgba(2,6,23,.08);
+    --radius: 16px;
+  }
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .container{max-width:980px;margin:24px auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .title h1{font-size:clamp(18px,2.6vw,28px);margin:0}
+  .title p{margin:4px 0 0;color:var(--muted)}
+  .hud{display:flex;align-items:center;gap:10px}
+  .badge{background:#eaf2ff;color:#1d4ed8;padding:6px 10px;border-radius:999px;font-weight:600}
+  .score{background:#ecfdf5;color:#065f46}
+  .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .stage-intro{margin-bottom:8px;color:var(--muted)}
+  .progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#22c55e);transition:width .3s ease}
+  .qmeta{display:flex;align-items:center;justify-content:space-between;margin:10px 0 14px}
+  .prompt{font-size:18px;line-height:1.4;margin:0 0 8px}
+  .math{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono","Courier New",monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:2px 6px}
+  fieldset{border:0;margin:0;padding:0}
+  .choices{display:grid;gap:10px;margin:8px 0}
+  .choice{display:flex;gap:10px;align-items:flex-start;border:1px solid #e5e7eb;border-radius:12px;padding:10px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{appearance:none;border:0;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);background:#111827;color:#fff}
+  button.secondary{background:#e5e7eb;color:#111827}
+  button.ghost{background:#fff;border:1px solid #e5e7eb;color:#111827}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .feedback{min-height:28px;margin-top:8px}
+  .feedback p{margin:0;padding:10px;border-radius:12px}
+  .ok{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+  .no{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+  .hintbox{margin-top:6px;color:#374151}
+  .hintbox .tag{display:inline-block;background:#f3f4f6;color:#111827;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;margin-right:6px;font-size:12px}
+  /* DnD generic */
+  .dnd-wrap{display:grid;gap:10px}
+  .sortable{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .draggable{user-select:none;padding:10px;border-radius:12px;border:1px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .drag-handle{font-size:12px;background:#e5e7eb;border-radius:8px;padding:4px 6px}
+  .pair-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .bins{display:grid;gap:10px}
+  .bin{min-height:46px;border:2px dashed #cbd5e1;border-radius:12px;padding:8px;background:#fafafa}
+  .bin h4{margin:2px 0 6px;font-size:14px;color:#374151}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#0c4a6e;margin:6px 6px 0 0;border:1px solid #bae6fd}
+  .updown{display:flex;gap:6px}
+  .updown button{padding:6px 8px;font-size:12px;border-radius:8px}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono","Courier New",monospace;background:#111827;color:#fff;border-radius:6px;padding:2px 6px;font-size:12px}
+  .end-screen{padding:18px}
+  details summary{cursor:pointer}
+  .review-item{border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin:10px 0;background:#fff}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div class="container" role="main">
+  <header aria-label="Lesson header">
+    <div class="title">
+      <h1><span id="courseTitle">Networking</span> – <span id="lessonTitle">OSI Model</span></h1>
+      <p id="stageTitle" aria-live="polite"></p>
+    </div>
+    <div class="hud" aria-label="Score and progress">
+      <span class="badge" id="qpos">Q 1/25</span>
+      <span class="badge score" id="scoreBadge">Score: 0</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <p class="stage-intro" id="stageIntro"></p>
+    <div class="progress" aria-label="Progress"><div class="bar" id="bar"></div></div>
+
+    <div id="qroot"></div>
+
+    <div class="controls">
+      <button id="checkBtn">Check</button>
+      <button id="hintBtn" class="secondary">Hint</button>
+      <button id="nextBtn" class="ghost" disabled>Next</button>
+    </div>
+
+    <div class="feedback" aria-live="polite" id="feedback"></div>
+  </div>
+
+  <section id="end" class="card end-screen" hidden>
+    <h2>Great work!</h2>
+    <p id="finalScore"></p>
+    <button id="printBtn">Print Results</button>
+    <details>
+      <summary>Review your answers</summary>
+      <div id="review"></div>
+    </details>
+    <div id="stageNav"></div>
+  </section>
+</div>
+
+<script type="application/json" id="qbank">
+{
+  "meta": {"course":"Computer Networking","lesson":"OSI Model — Upper-Year Practice"},
+  "sections": [
+    {
+      "title":"Practice 1",
+      "intro":"Let’s start by classifying layers and core functions.",
+      "items": [
+        {"id":"P1-1","type":"mc","prompt_html":"Routers primarily operate at which OSI layer?","choices":["Layer 2 — Data Link","Layer 3 — Network","Layer 4 — Transport","Layer 7 — Application"],"correct":"Layer 3 — Network","hints":["Think about logical addressing (IP).","Devices that forward by IP live at this layer.","Routers examine IP headers to choose paths — that's Layer 3."],"explain":"Routing and logical addressing are Layer 3 functions."},
+        {"id":"P1-2","type":"mc","prompt_html":"Switches primarily operate at which OSI layer?","choices":["Layer 1 — Physical","Layer 2 — Data Link","Layer 3 — Network","Layer 7 — Application"],"correct":"Layer 2 — Data Link","hints":["Look for MAC addresses.","Forwarding based on MAC happens here.","Switches/bridges are classic Layer 2 devices."],"explain":"Switches forward frames using MAC addresses at Layer 2."},
+        {"id":"P1-3","type":"mc","prompt_html":"How many layers are in the OSI model?","choices":["7","5","4","6"],"correct":"7","hints":["It’s more than TCP/IP.","Think of the mnemonic with seven words.","Top to bottom: Application→Physical (7 total)."],"explain":"The OSI reference model has seven layers."},
+        {"id":"P1-4","type":"mc","prompt_html":"Which OSI layer handles raw bits on the medium?","choices":["Data Link (Layer 2)","Transport (Layer 4)","Physical (Layer 1)","Network (Layer 3)"],"correct":"Physical (Layer 1)","hints":["This is about signaling and cabling.","Electrical/optical/radio specs live here.","Layer 1 transmits bits as signals."],"explain":"Physical layer defines electrical/mechanical/optical signaling for bits."},
+        {"id":"P1-5","type":"mc","prompt_html":"Which layer formats frames for transmission and reception?","choices":["Presentation (Layer 6)","Network (Layer 3)","Data Link (Layer 2)","Physical (Layer 1)"],"correct":"Data Link (Layer 2)","hints":["Think 'frame' and 'MAC'.","It's below the Network layer.","Layer 2 encapsulates packets into frames with MAC addresses."],"explain":"Layer 2 handles framing, MAC addressing, and error detection on a link."},
+        {"id":"P1-6","type":"mc","prompt_html":"Which OSI layer interacts directly with end‑user applications?","choices":["Session (Layer 5)","Application (Layer 7)","Presentation (Layer 6)","Transport (Layer 4)"],"correct":"Application (Layer 7)","hints":["Topmost layer.","Provides services like HTTP, DNS interfaces.","Application layer interfaces with software the user sees."],"explain":"Layer 7 provides network services to applications (e.g., HTTP APIs)."},
+        {"id":"P1-7","type":"mc","prompt_html":"The Presentation layer primarily acts as the network’s translator. True or False?","choices":["True","False"],"correct":"True","hints":["Consider data formats.","This layer makes data readable between systems.","Translation, encryption, and compression are Presentation layer tasks."],"explain":"Layer 6 handles translation, encryption, and compression."},
+        {"id":"P1-8","type":"mc","prompt_html":"Which OSI layer establishes, manages, and terminates sessions?","choices":["Application (Layer 7)","Session (Layer 5)","Presentation (Layer 6)","Data Link (Layer 2)"],"correct":"Session (Layer 5)","hints":["Think dialogs and checkpoints.","This layer coordinates conversations.","Sessions = Layer 5."],"explain":"Session layer (5) controls dialog and session lifecycle."},
+        {"id":"P1-9","type":"mc","prompt_html":"Which addressing is used at the Network layer?","choices":["MAC (physical) addressing","Port numbers","IP (logical) addressing","URLs/hostnames"],"correct":"IP (logical) addressing","hints":["Layer 3.","What addresses do routers look at?","Routers forward by IP — logical addressing."],"explain":"Layer 3 uses IP addresses for routing."},
+        {"id":"P1-10","type":"mc","prompt_html":"Which OSI layer uses MAC addresses?","choices":["Network (Layer 3)","Data Link (Layer 2)","Transport (Layer 4)","Application (Layer 7)"],"correct":"Data Link (Layer 2)","hints":["Frames carry these.","Switches inspect them.","MAC addressing is a Layer 2 concept."],"explain":"Layer 2 uses MAC addresses in frames."},
+        {"id":"P1-11","type":"order","prompt_html":"Place the <strong>OSI layers</strong> in order from <em>top (Layer 7)</em> to <em>bottom (Layer 1)</em>.","orderTargets":["Application","Presentation","Session","Transport","Network","Data Link","Physical"],"hints":["Recall the mnemonic.","Top three are about applications; bottom two are about media.","Correct order: Application → Presentation → Session → Transport → Network → Data Link → Physical."],"explain":"Remember: <em>All People Seem To Need Data Processing</em> (top→bottom)."}
+      ]
+    },
+    {
+      "title":"Practice 2",
+      "intro":"Now connect units and devices to the right layers.",
+      "items": [
+        {"id":"P2-1","type":"mc","prompt_html":"Which Transport protocol is faster but less reliable?","choices":["TCP","UDP","SCTP","ICMP"],"correct":"UDP","hints":["No connection setup.","Used for streaming/gaming often.","UDP is connectionless and doesn't guarantee delivery."],"explain":"UDP trades reliability for lower latency and overhead."},
+        {"id":"P2-2","type":"mc","prompt_html":"Which Transport protocol provides reliable, ordered delivery?","choices":["UDP","ICMP","TCP","IGMP"],"correct":"TCP","hints":["Three‑way handshake.","Acknowledgments and retransmission.","TCP provides reliable, ordered, byte‑stream delivery."],"explain":"TCP ensures reliability with sequencing and ACKs."},
+        {"id":"P2-3","type":"mc","prompt_html":"Which Data Link sublayer controls media access?","choices":["LLC sublayer","MAC sublayer","ARP","ICMP"],"correct":"MAC sublayer","hints":["Think CSMA/CA or CSMA/CD.","Not LLC.","Media Access Control (MAC) selects who talks when."],"explain":"The MAC sublayer handles addressing and access to the medium."},
+        {"id":"P2-4","type":"mc","prompt_html":"Mnemonic to remember OSI from top → bottom:","choices":["All People Seem To Need Data Processing","Please Do Not Throw Sausage Pizza Away","All Programmers Study To Network Data","Application Presents Session To Network Daily"],"correct":"All People Seem To Need Data Processing","hints":["Starts with 'All People'.","Seven words.","All People Seem To Need Data Processing = 7→1."],"explain":"All People Seem To Need Data Processing maps to A,P,S,T,N,D,P."},
+        {"id":"P2-5","type":"mc","prompt_html":"Devices at the <strong>Physical (Layer 1)</strong> include:","choices":["Switches & bridges","Routers & L3 switches","Hubs & repeaters","Proxies & gateways"],"correct":"Hubs & repeaters","hints":["No MAC or IP intelligence.","These regenerate/amplify signals.","Hubs/repeaters are Layer 1 devices."],"explain":"Hubs and repeaters operate purely on signals (bits)."},
+        {"id":"P2-6","type":"mc","prompt_html":"Devices at the <strong>Application (Layer 7)</strong> include:","choices":["Proxies & application gateways","Routers & L3 switches","Switches & bridges","Hubs & repeaters"],"correct":"Proxies & application gateways","hints":["Think HTTP awareness.","North of Presentation and Session.","Application-aware devices sit at Layer 7."],"explain":"Proxies/gateways interpret application protocols (e.g., HTTP)."},
+        {"id":"P2-7","type":"mc","prompt_html":"What does OSI stand for?","choices":["Open Systems Interconnection","Open Software Interface","Open Security Infrastructure","Operational Systems Internet"],"correct":"Open Systems Interconnection","hints":["Standardization body is ISO.","Two words start with 'Open' and 'Systems'.","OSI = Open Systems Interconnection."],"explain":"OSI stands for Open Systems Interconnection (by ISO)."},
+        {"id":"P2-8","type":"mc","prompt_html":"Main function of the Transport layer?","choices":["Frame formatting","Routing & path selection","End‑to‑end delivery & reliability","Cable signaling"],"correct":"End‑to‑end delivery & reliability","hints":["Between processes, not links.","Sequencing, flow control.","Transport ensures reliable end‑to‑end delivery (TCP)."],"explain":"Transport (L4) provides process‑to‑process delivery and reliability options."},
+        {"id":"P2-9","type":"order","prompt_html":"Place the <strong>protocol data units (PDUs)</strong> in order from <em>top (Layer 7)</em> to <em>bottom (Layer 1)</em>.","orderTargets":["Data","Segment / Datagram","Packet","Frame","Bits"],"hints":["At L7–5 we just say ‘data’.","Transport adds segments (TCP) or datagrams (UDP).","Correct order (top→bottom): Data → Segment/Datagram → Packet → Frame → Bits."],"explain":"Application/Presentation/Session: Data • Transport: Segment/Datagram • Network: Packet • Data Link: Frame • Physical: Bits."},
+        {"id":"P2-10","type":"order","prompt_html":"Place the <strong>common devices</strong> in OSI order from <em>top (Layer 7)</em> to <em>bottom (Layer 1)</em>.","orderTargets":["Proxy / App Gateway","Codec / SSL Terminator","Session Border Controller","Load Balancer (L4)","Router / L3 Switch","Switch / Bridge","Hub / Repeater"],"hints":["First assign each device to a layer.","Top understands applications; bottom just handles signals.","Order: L7 Proxy → L6 Codec/SSL → L5 SBC → L4 LB → L3 Router → L2 Switch/Bridge → L1 Hub/Repeater."],"explain":"Devices sorted by their most common OSI layer from 7 down to 1."}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+// ==== Clean, robust quiz engine (replaced to fix blank screen bug) ====
+(() => {
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+  // ---------- Load data ----------
+  const qdataRaw = document.getElementById('qbank').textContent;
+  let qdata;
+  try { qdata = JSON.parse(qdataRaw); } catch(e){ console.error('QBank JSON parse error', e); return; }
+  const sections = qdata.sections || [];
+  // Flatten while retaining section + index
+  let flat = [];
+  sections.forEach((sec, sidx) => (sec.items||[]).forEach((it, iidx) => flat.push({...it, _s:sidx, _i:iidx})));
+  // Enforce 25 max per user request
+  if (flat.length > 25) flat = flat.slice(0,25);
+  const TOTAL = flat.length;
+
+  // ---------- State ----------
+  let pos = 0;         // current index in flat
+  let score = 0;       // number correct
+  let hintLevel = 0;   // per-item cycling
+  const answers = [];  // review log
+
+  // ---------- Static UI ----------
+  $('#courseTitle').textContent = qdata.meta?.course || 'Networking';
+  $('#lessonTitle').textContent = qdata.meta?.lesson || 'OSI Model';
+  const qroot = $('#qroot');
+  const feedback = $('#feedback');
+
+  function updateHUD(){
+    $('#qpos').textContent = `Q ${Math.min(pos+1, TOTAL)}/${TOTAL}`;
+    $('#scoreBadge').textContent = `Score: ${score}`;
+    const pct = TOTAL ? (pos/TOTAL)*100 : 0;
+    $('#bar').style.width = pct+"%";
+    const sec = sections[ flat[pos]?._s ] || {};
+    $('#stageTitle').textContent = sec.title || '';
+    $('#stageIntro').textContent = sec.intro || '';
+  }
+
+  function shuffle(a){
+    a = a.slice();
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  function clearHandlers(){
+    $('#checkBtn').onclick = null; $('#hintBtn').onclick = null; $('#nextBtn').onclick = null;
+  }
+
+  function render(){
+    if (pos >= TOTAL) return end();
+    hintLevel = 0; feedback.innerHTML = '';
+    updateHUD();
+    const item = flat[pos];
+    $('#checkBtn').disabled = false; $('#hintBtn').disabled = false; $('#nextBtn').disabled = true;
+    clearHandlers();
+    if(item.type === 'mc') renderMC(item);
+    else if(item.type === 'order') renderOrder(item);
+    else if(item.type === 'match') renderMatch(item);
+    else { qroot.innerHTML = '<p class="prompt">Unsupported item type.</p>'; }
+  }
+
+  // ---------- MC ----------
+  function renderMC(item){
+    const opts = shuffle(item.choices || []);
+    qroot.innerHTML = `
+      <p class="prompt">${item.prompt_html||''}</p>
+      <fieldset><legend class="sr-only">Choose one answer</legend>
+        <div class="choices" role="radiogroup">
+          ${opts.map(c=>`<label class=\"choice\"><input type=\"radio\" name=\"mc\" value=\"${c}\"> <span>${c}</span></label>`).join('')}
+        </div>
+      </fieldset>`;
+
+    $('#checkBtn').onclick = () => {
+      const sel = $('input[name="mc"]:checked');
+      if(!sel){ feedback.innerHTML = `<p class="no">Please select an option first.</p>`; return; }
+      const user = sel.value; const correct = user === item.correct; if(correct) score++;
+      $('#nextBtn').disabled = false;
+      feedback.innerHTML = correct ? `<p class="ok">Correct — ${item.explain||''}</p>`
+                                   : `<p class="no">Not quite. Remember: ${item.hints?.[0]||''}</p>`;
+      answers.push({id:item.id, user, correct, explain:item.explain||''});
+      updateHUD();
+    };
+    $('#hintBtn').onclick = () => { hintLevel = Math.min(hintLevel+1, (item.hints||[]).length); feedback.innerHTML = `<p class="no">Hint ${hintLevel}: ${item.hints?.[hintLevel-1]||'No further hints.'}</p>`; };
+    $('#nextBtn').onclick = () => { pos++; render(); };
+  }
+
+  // ---------- ORDER (top→bottom) ----------
+  function renderOrder(item){
+    const start = shuffle(item.orderTargets||[]);
+    qroot.innerHTML = `
+      <p class="prompt">${item.prompt_html||''}</p>
+      <ul class="sortable" id="olist">
+        ${start.map(row=>`<li class=\"draggable\" data-label=\"${row}\">${row}
+          <span class=\"updown\"><button type=\"button\" class=\"secondary up\">Move Up</button><button type=\"button\" class=\"secondary down\">Move Down</button></span>
+        </li>`).join('')}
+      </ul>`;
+    $$('#olist .up').forEach(btn=>btn.onclick = e => { const li = e.target.closest('li'); if(li.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling); });
+    $$('#olist .down').forEach(btn=>btn.onclick = e => { const li = e.target.closest('li'); if(li.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li); });
+
+    $('#checkBtn').onclick = () => {
+      const got = $$('#olist li').map(li=>li.dataset.label);
+      const want = item.orderTargets || [];
+      const correct = JSON.stringify(got) === JSON.stringify(want);
+      if(correct) score++;
+      $('#nextBtn').disabled = false;
+      feedback.innerHTML = correct ? `<p class="ok">Nice! ${item.explain||''}</p>`
+                                   : `<p class="no">Check the sequence. ${(item.hints||[])[Math.min(hintLevel, (item.hints||[]).length-1)]||''}</p>`;
+      answers.push({id:item.id, user: got.join(' → '), correct, explain:item.explain||''});
+      updateHUD();
+    };
+    $('#hintBtn').onclick = () => { hintLevel = Math.min(hintLevel+1, (item.hints||[]).length); feedback.innerHTML = `<p class="no">Hint ${hintLevel}: ${(item.hints||[])[hintLevel-1]||'No further hints.'}</p>`; };
+    $('#nextBtn').onclick = () => { pos++; render(); };
+  }
+
+  // ---------- MATCH (bins) ----------
+  function renderMatch(item){
+    const pool = shuffle(item.pool||[]);
+    qroot.innerHTML = `
+      <p class="prompt">${item.prompt_html||''}</p>
+      <div class="pair-grid">
+        <div class="bins" id="bins">
+          ${(item.matchTargets||[]).map(m=>`<div class=\"bin\" data-bin=\"${m.bin}\"><h4>${m.bin}</h4><div class=\"bin-drop\"></div></div>`).join('')}
+        </div>
+        <div><h4>Devices</h4><div id="pool">${pool.map(d=>`<span class=\"chip\" data-label=\"${d}\">${d}</span>`).join('')}</div></div>
+      </div>`;
+    // click-to-move for accessibility (also works like drag)
+    $$('#pool .chip').forEach(ch => ch.onclick = () => {
+      const openBin = $('#bins .bin:last-child .bin-drop') || $('#bins .bin .bin-drop');
+      openBin.appendChild(ch);
+    });
+    $$('#bins .bin').forEach(bin => bin.onclick = e => {
+      // move last chip back to pool on click (toggle)
+      const chip = $('.chip', bin);
+      if(chip) $('#pool').appendChild(chip);
+    });
+
+    $('#checkBtn').onclick = () => {
+      const mapping = {};
+      $$('#bins .bin').forEach(b => mapping[b.dataset.bin] = $$('.chip', b).map(c=>c.dataset.label));
+      let all = true;
+      (item.matchTargets||[]).forEach(t => { const got = mapping[t.bin]||[]; const ok = got.length===1 && t.accept.includes(got[0]); if(!ok) all=false; });
+      if(all) score++;
+      $('#nextBtn').disabled = false;
+      feedback.innerHTML = all ? `<p class="ok">Excellent matching! ${item.explain||''}</p>`
+                               : `<p class="no">Some placements are off. ${(item.hints||[])[Math.min(hintLevel, (item.hints||[]).length-1)]||''}</p>`;
+      const userTxt = Object.entries(mapping).map(([k,v])=>`${k}: ${v.join(', ')||'—'}`).join(' | ');
+      answers.push({id:item.id, user:userTxt, correct:all, explain:item.explain||''});
+      updateHUD();
+    };
+    $('#hintBtn').onclick = () => { hintLevel = Math.min(hintLevel+1, (item.hints||[]).length); feedback.innerHTML = `<p class="no">Hint ${hintLevel}: ${(item.hints||[])[hintLevel-1]||'No further hints.'}</p>`; };
+    $('#nextBtn').onclick = () => { pos++; render(); };
+  }
+
+  // ---------- End screen ----------
+  function end(){
+    $('.card').hidden = true; $('#end').hidden = false;
+    const pct = Math.round((score/TOTAL)*100)||0;
+    $('#finalScore').textContent = `You scored ${score} out of ${TOTAL} (${pct}%).`;
+    const review = $('#review'); review.innerHTML = '';
+    answers.forEach(a=>{ const d=document.createElement('div'); d.className='review-item'; d.innerHTML = `<strong>${a.id}</strong> — ${a.correct?'<span style=\"color:#065f46\">Correct</span>':'<span style=\"color:#991b1b\">Incorrect</span>'}<br><em>Your answer:</em> ${a.user}<br><em>Explanation:</em> ${a.explain}`; review.appendChild(d); });
+    $('#printBtn').onclick = () => window.print();
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
