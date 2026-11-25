@@ -1,8 +1,10 @@
-Networking – OSI Model Lesson Game
+# OSI Model Lesson Game
 
 An interactive browser-based quiz game for teaching and reviewing the OSI model. Built for vocational networking and CIT students but works for anyone learning the OSI stack.
 
-No server required. Single HTML file. Open it and go.
+Download [`index.html`](index.html) and open it in a browser. Run Practice 1 to review layers and devices, then Practice 2 for transport protocols and ordering.
+
+For a follow-up with synthetic packet captures, use [PCAP-to-OSI](https://github.com/MichaelAPerry/pcaptoOSI).
 What It Covers
 
     All 7 OSI layers — functions, devices, PDUs, addressing
